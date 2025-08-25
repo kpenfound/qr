@@ -26,7 +26,7 @@ type Config struct {
 
 func main() {
 	config := parseFlags()
-	
+
 	if config.text == "" {
 		fmt.Fprintf(os.Stderr, "Error: text to encode is required\n")
 		flag.Usage()
@@ -41,7 +41,7 @@ func main() {
 
 func parseFlags() Config {
 	var config Config
-	
+
 	flag.StringVar(&config.text, "text", "", "Text to encode in QR code (required)")
 	flag.StringVar(&config.text, "t", "", "Text to encode in QR code (shorthand)")
 	flag.IntVar(&config.size, "size", 0, "Size scale 1-10 (0 for auto-detect, 1=smallest, 10=largest)")
@@ -52,7 +52,7 @@ func parseFlags() Config {
 	flag.BoolVar(&config.quiet, "q", false, "Suppress extra output (shorthand)")
 	flag.IntVar(&config.border, "border", 2, "Border size around QR code")
 	flag.IntVar(&config.border, "b", 2, "Border size around QR code (shorthand)")
-	
+
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [options]\n\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "Generate QR codes in the terminal or save to file.\n\n")
@@ -64,9 +64,9 @@ func parseFlags() Config {
 		fmt.Fprintf(os.Stderr, "  %s -t \"Save to file\" -o qr.png\n", os.Args[0])
 		fmt.Fprintf(os.Stderr, "  echo \"Pipe input\" | %s -t -\n", os.Args[0])
 	}
-	
+
 	flag.Parse()
-	
+
 	// Handle reading from stdin if text is "-"
 	if config.text == "-" {
 		var input strings.Builder
@@ -82,7 +82,7 @@ func parseFlags() Config {
 		}
 		config.text = strings.TrimSpace(input.String())
 	}
-	
+
 	return config
 }
 
@@ -94,7 +94,7 @@ func generateQR(config Config) error {
 		if err != nil {
 			return fmt.Errorf("failed to generate QR code: %v", err)
 		}
-		
+
 		// Apply border configuration
 		if config.border <= 0 {
 			qr.DisableBorder = true
@@ -104,44 +104,48 @@ func generateQR(config Config) error {
 			// so we work with the default border when enabled
 			qr.DisableBorder = false
 		}
-		
+
 		return qr.WriteFile(256, config.outputFile)
 	}
-	
+
 	// Generate QR code for terminal display
 	qr, err := qrcode.New(config.text, qrcode.Medium)
 	if err != nil {
 		return fmt.Errorf("failed to generate QR code: %v", err)
 	}
-	
+
 	// Always generate QR code without border for terminal display
 	// We'll handle border manually in renderQRToTerminal
 	qr.DisableBorder = true
-	
+
 	// Convert user-friendly size to actual QR dimensions
-	size := convertSizeScale(config.size)
-	if config.size == 0 {
+	var size int
+	if config.size == 0 || config.size < 1 || config.size > 10 {
+		// Use auto-detection for 0 or invalid sizes
 		size = calculateOptimalSize()
+	} else {
+		// Use the mapped size for valid inputs (1-10)
+		size = convertSizeScale(config.size)
 	}
-	
+
 	// Get the QR code bitmap
 	bitmap := qr.Bitmap()
-	
+
 	// Check if we're in a TTY environment
 	isTTY := term.IsTerminal(int(os.Stdout.Fd()))
-	
+
 	if !config.quiet && isTTY {
 		fmt.Printf("QR Code for: %s\n", config.text)
 		fmt.Println()
 	}
-	
+
 	// Render QR code to terminal
 	renderQRToTerminal(bitmap, isTTY, size, config.border)
-	
+
 	if !config.quiet && isTTY {
 		fmt.Println()
 	}
-	
+
 	return nil
 }
 
@@ -158,7 +162,7 @@ func calculateOptimalSize() int {
 			}
 		}
 	}
-	
+
 	// Default size for no-tty or if detection fails
 	return 25
 }
@@ -166,12 +170,12 @@ func calculateOptimalSize() int {
 func renderQRToTerminal(matrix [][]bool, isTTY bool, targetSize int, border int) {
 	// Scale the matrix if needed
 	scaledMatrix := scaleMatrix(matrix, targetSize)
-	
+
 	// Add border if specified
 	if border > 0 {
 		scaledMatrix = addBorder(scaledMatrix, border)
 	}
-	
+
 	for _, row := range scaledMatrix {
 		var line strings.Builder
 		for _, module := range row {
@@ -200,30 +204,30 @@ func scaleMatrix(matrix [][]bool, targetSize int) [][]bool {
 	if targetSize <= 0 || len(matrix) == 0 {
 		return matrix
 	}
-	
+
 	originalSize := len(matrix)
-	
+
 	// If target size matches original, return as-is
 	if targetSize == originalSize {
 		return matrix
 	}
-	
+
 	// Calculate scale factor
 	scale := float64(targetSize) / float64(originalSize)
-	
+
 	// Create scaled matrix
 	scaled := make([][]bool, targetSize)
 	for i := range scaled {
 		scaled[i] = make([]bool, targetSize)
 	}
-	
+
 	// Fill scaled matrix
 	for y := 0; y < targetSize; y++ {
 		for x := 0; x < targetSize; x++ {
 			// Map back to original coordinates
 			origY := int(float64(y) / scale)
 			origX := int(float64(x) / scale)
-			
+
 			// Ensure we don't go out of bounds
 			if origY >= originalSize {
 				origY = originalSize - 1
@@ -231,11 +235,11 @@ func scaleMatrix(matrix [][]bool, targetSize int) [][]bool {
 			if origX >= originalSize {
 				origX = originalSize - 1
 			}
-			
+
 			scaled[y][x] = matrix[origY][origX]
 		}
 	}
-	
+
 	return scaled
 }
 
@@ -243,46 +247,47 @@ func addBorder(matrix [][]bool, borderSize int) [][]bool {
 	if borderSize <= 0 || len(matrix) == 0 {
 		return matrix
 	}
-	
+
 	originalSize := len(matrix)
 	newSize := originalSize + (borderSize * 2)
-	
+
 	// Create new matrix with border
 	borderedMatrix := make([][]bool, newSize)
 	for i := range borderedMatrix {
 		borderedMatrix[i] = make([]bool, newSize)
 	}
-	
+
 	// Copy original matrix to center, leaving borders as false (white)
 	for y := 0; y < originalSize; y++ {
 		for x := 0; x < originalSize; x++ {
 			borderedMatrix[y+borderSize][x+borderSize] = matrix[y][x]
 		}
 	}
-	
+
 	return borderedMatrix
 }
 
 func convertSizeScale(userSize int) int {
 	// Map user-friendly size (1-10) to valid QR code dimensions
 	// These sizes ensure the QR code structure remains intact
+	// Note: Starting from Version 2 QR (25) since Version 1 (21) doesn't produce valid QR codes
 	if userSize < 1 || userSize > 10 {
 		return 25 // Default fallback
 	}
-	
+
 	sizeMap := []int{
-		21, // 1 - smallest (Version 1 QR)
-		25, // 2 - Version 2 QR
-		29, // 3 - Version 3 QR
-		33, // 4 - Version 4 QR
-		37, // 5 - Version 5 QR
-		41, // 6 - Version 6 QR
-		45, // 7 - Version 7 QR
-		49, // 8 - Version 8 QR
-		53, // 9 - Version 9 QR
-		57, // 10 - largest (Version 10 QR)
+		25, // 1
+		29, // 2
+		33, // 3
+		37, // 4
+		41, // 5
+		45, // 6
+		49, // 7
+		53, // 8
+		57, // 9
+		61, // 10
 	}
-	
+
 	return sizeMap[userSize-1]
 }
 

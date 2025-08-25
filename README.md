@@ -72,16 +72,16 @@ The size parameter uses a user-friendly scale that maps to valid QR code dimensi
 
 | Size | Dimensions | Description |
 |------|------------|-------------|
-| `1` | 21×21 | Smallest valid QR code |
-| `2` | 25×25 | Very small |
-| `3` | 29×29 | Small |
-| `4` | 33×33 | Small-medium |
-| `5` | 37×37 | Medium (good default) |
-| `6` | 41×41 | Medium-large |
-| `7` | 45×45 | Large |
-| `8` | 49×49 | Very large |
-| `9` | 53×53 | Extra large |
-| `10` | 57×57 | Largest |
+| `1` | 25×25 | Smallest valid QR code |
+| `2` | 29×29 | Very small |
+| `3` | 33×33 | Small |
+| `4` | 37×37 | Small-medium |
+| `5` | 41×41 | Medium (good default) |
+| `6` | 45×45 | Medium-large |
+| `7` | 49×49 | Large |
+| `8` | 53×53 | Very large |
+| `9` | 57×57 | Extra large |
+| `10` | 61×61 | Largest |
 
 > **Note**: All sizes produce valid, scannable QR codes. The dimensions correspond to official QR code version standards.
 
